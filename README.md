@@ -69,4 +69,78 @@ Além da limpeza técnica, o pipeline aplica as decisões de negócio do enuncia
 
 ---
 
+## Modelagem dimensional (Star Schema)
+
+Modelo estrela com **1 fato** no centro e **4 dimensões**, mais o Calendário criado
+em DAX no Power BI (a dimensão de tempo). Cada tabela tem chave substituta (`sk_...`)
+como PK; as dimensões guardam também a chave natural como `UNIQUE`. A fato aponta para
+as dimensões por FK, garantindo integridade referencial.
+
+```mermaid
+erDiagram
+    dim_orgao       ||--o{ fato_item_contratado : sk_orgao
+    dim_fornecedor  ||--o{ fato_item_contratado : sk_fornecedor
+    dim_modalidade  ||--o{ fato_item_contratado : sk_modalidade
+    dim_localidade  ||--o{ fato_item_contratado : sk_localidade
+
+    fato_item_contratado {
+        int sk_fato PK
+        varchar numero_controle_pncp
+        int numero_item
+        int sk_orgao FK
+        int sk_fornecedor FK
+        int sk_modalidade FK
+        int sk_localidade FK
+        date data_publicacao
+        date data_homologacao
+        text descricao_item
+        varchar perfil_gasto
+        decimal quantidade
+        decimal valor_total_estimado
+        decimal valor_total_homologado
+        tinyint comparavel
+        decimal economia_valor
+        int dias_ciclo
+    }
+    dim_orgao {
+        int sk_orgao PK
+        varchar cnpj_orgao UK
+        varchar nome_orgao
+        varchar poder
+    }
+    dim_fornecedor {
+        int sk_fornecedor PK
+        varchar ni_fornecedor UK
+        varchar nome_fornecedor
+        varchar tipo_pessoa
+        varchar porte
+    }
+    dim_modalidade {
+        int sk_modalidade PK
+        int modalidade_id UK
+        varchar nome_modalidade
+    }
+    dim_localidade {
+        int sk_localidade PK
+        varchar uf_sigla UK
+        varchar uf_nome
+        varchar regiao
+    }
+```
+
+| Tabela | Papel | Linhas (prova real) |
+|--------|-------|---------------------|
+| `fato_item_contratado` | o que foi comprado (1 linha por item vencedor) | 6.126 |
+| `dim_orgao` | quem comprou (unidade compradora) | 363 |
+| `dim_fornecedor` | quem vendeu | 2.652 |
+| `dim_modalidade` | como comprou | 7 |
+| `dim_localidade` | onde (UF + região) | 27 |
+
+Cada dimensão recebe ainda a linha **"Não informado" (`sk = -1`)**, para que nenhuma
+FK do fato fique sem destino. O schema completo está em
+[`sql/01_criar_banco.sql`](sql/01_criar_banco.sql), com `CHECK` contra valores negativos
+e tipos `DECIMAL` para dinheiro.
+
+---
+
 > **Status:** em construção. Este README cresce junto com o projeto (uma versão por Sprint).
