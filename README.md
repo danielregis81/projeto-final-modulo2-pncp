@@ -267,6 +267,105 @@ As mesmas respostas estão em SQL em [`sql/02_perguntas.sql`](sql/02_perguntas.s
 
 Defesa técnica em vídeo (máx. 7 min): `<inserir link do Google Drive>`.
 
+> Caso o vídeo não seja entregue a tempo, a **defesa técnica escrita** abaixo registra,
+> por extenso, o racional de cada ponto que seria apresentado oralmente.
+
+---
+
+## Defesa técnica (escrita)
+
+Esta seção documenta, por escrito, a defesa que seria feita no vídeo. Está organizada
+nos quatro eixos da avaliação técnica.
+
+### 1. Defesa da sanitização de dados em Python
+
+O ecossistema de origem (PNCP) entrega dados sem travas de validação, então a limpeza
+foi tratada como uma camada de auditoria explícita, com **funções unitárias e testáveis**
+em `src/limpeza.py` (autoteste `python -m src.limpeza` → **54/54**). Cada decisão:
+
+- **Documentos (CNPJ/CPF):** removo máscara, fico só com dígitos e recomponho o zero à
+  esquerda com `zfill` no tamanho certo (14 para PJ, 11 para PF). Isso corrige o erro
+  clássico de CNPJ que "perdeu o zero" e passaria a ser um documento diferente.
+  Estrangeiros (tipo `PE`) são preservados, pois não seguem o formato nacional.
+- **Conversão de tipos de moeda:** o grande risco era o separador. A regra desta base é
+  que **ponto ou vírgula sozinho é sempre decimal** (`746.815` = 746,815), e só o símbolo
+  **repetido** é milhar (`1.234.567` = 1.234.567). Quando aparecem os dois, o último é o
+  decimal. É exatamente isso que impede o "volume homologado explodir em bilhões":
+  o total fecha em **R$ 8,04 bi** (prova real), não em R$ 31 bi.
+- **Datas:** há várias máscaras no mesmo campo (`2025-03-10T08:30:00`, `10/03/2025`,
+  `20250310`). Tento os formatos conhecidos, descarto a hora e **rejeito datas impossíveis**
+  (`31/02/2025`) e anos absurdos (só aceito 2000–2030).
+- **Nulos disfarçados:** `N/A`, `NULL`, `-`, `SEM INFORMAÇÃO`, `NÃO SE APLICA` viram
+  `None`. Detalhe fino: o `"0"` só é nulo em campo de **texto**; em campo numérico, zero
+  é um valor válido (`zero_eh_nulo=False`).
+- **Encoding:** conserto o clássico UTF-8 lido como Latin-1 (`AquisiÃ§Ã£o` → `Aquisição`)
+  e removo caracteres invisíveis de largura zero.
+
+O **critério de descarte/rejeição** (regra 4) é a segunda barreira de qualidade: itens
+com quantidade/valor ≤ 0, orçamento sigiloso, total estimado < R$ 1, homologado mais de
+1000× o estimado ou acima de R$ 1 trilhão **não entram no fato** (99 itens, bate com a
+prova real). Isso evita que outliers e lixo contaminem as análises.
+
+### 2. Defesa do produto no Power BI
+
+O dashboard foi desenhado para **responder as 6 perguntas de negócio**, uma página por
+pergunta, no padrão *pergunta (título) → números (visuais) → conclusão (texto)*.
+
+- **Modelo:** importação das 5 tabelas do Star Schema via conector MySQL; relações 1:N
+  das dimensões para o fato; colunas técnicas (`sk_`) escondidas da visão de relatório.
+- **Calendário dinâmico em DAX** (`CALENDAR`), com colunas temporais ordenadas por número
+  (o mês ordena por `MesNum`, não alfabeticamente) e **duas relações** com o fato
+  (`data_publicacao` ativa; `data_homologacao` inativa via `USERELATIONSHIP`). A hierarquia
+  automática de data do Power BI fica **desligada**, como pede o enunciado.
+- **15 medidas DAX explícitas** em tabela dedicada (`_Medidas`), com `VAR/RETURN`,
+  `CALCULATE`, `DIVIDE` e iteradoras. Percentual é sempre `DIVIDE(soma, soma)`, nunca média
+  de percentuais — por isso a Economia % fecha em **14,46%**.
+- **UX avançada:** menu retrátil com botões e *bookmarks* para navegar entre as páginas,
+  e página de *tooltip* personalizada para detalhamento ao passar o mouse.
+- **Princípios CRAP:** contraste e cor com propósito (destacar o indicador-chave de cada
+  página), alinhamento em grid, repetição do mesmo layout entre páginas e proximidade
+  agrupando número + conclusão.
+
+As medidas e o guia de montagem estão em [`powerbi/medidas_dax.md`](powerbi/medidas_dax.md)
+e [`powerbi/GUIA_POWERBI.md`](powerbi/GUIA_POWERBI.md). Os números do dashboard batem com
+`sql/02_perguntas.sql` e com a tabela de prova real acima.
+
+### 3. Defesa da arquitetura MySQL (Star Schema)
+
+Escolhi um **esquema estrela** em vez de uma tabela única desnormalizada porque o problema
+é analítico (agregações por órgão, fornecedor, modalidade, UF e tempo) — e a estrela
+entrega consultas simples, consistentes e com integridade garantida pelo banco.
+
+- **1 fato + 4 dimensões:** o fato guarda os números (o que se mede) e as chaves; cada
+  dimensão guarda a descrição (quem, como, onde). O tempo é a dimensão Calendário (DAX).
+- **Chaves substitutas (`sk_`)** como PK em todas as tabelas, e a chave natural
+  (`cnpj_orgao`, `ni_fornecedor`, `modalidade_id`, `uf_sigla`) como `UNIQUE`. Isso
+  desacopla o modelo da origem e evita duplicação por máscara/zero perdido.
+- **Integridade referencial:** toda FK do fato aponta para uma linha que existe. Para
+  nenhuma FK ficar solta, cada dimensão tem a linha **"Não informado" (`sk = -1`)**
+  (neste dataset nenhuma linha do fato precisou dela — 0 referências, o que confirma a
+  qualidade da limpeza).
+- **Tipos e barreira de qualidade:** dinheiro em `DECIMAL(18,2)`, preços/quantidades em
+  `DECIMAL(18,4)`, datas em `DATE`; `CHECK` impede valores monetários negativos. O banco
+  é a segunda barreira de validação, depois do Python.
+- **Pipeline de carga automatizado:** `src/carregar.py` executa o DDL
+  (`sql/01_criar_banco.sql`), carrega as dimensões **antes** do fato (por causa das FKs),
+  insere em lote (`executemany`) e **confere as contagens** contra a prova real
+  (fato 6.126, dims 363/2.652/7/27). Rollback natural: o DDL recria o schema do zero a
+  cada execução, tornando a carga idempotente.
+
+### 4. Comunicação técnica e rastreabilidade
+
+- **Rastreabilidade por commits:** o histórico do Git foi construído para contar a
+  evolução (um passo por commit, mensagens no imperativo), seguindo as Sprints 0→7.
+- **Reprodutibilidade:** qualquer analista reproduz o pipeline do zero só com o README
+  (seção "Como reproduzir"), e cada etapa imprime os números de conferência.
+- **Confiabilidade demonstrável:** a tabela de prova real mostra os 15 indicadores
+  batendo com o anexo do enunciado — a evidência objetiva de que o pipeline está correto.
+- **Decisões documentadas:** as regras de negócio e o dicionário de inconsistências ficam
+  no README; divergências de interpretação (quando houver) seriam anotadas aqui, como
+  manda o enunciado.
+
 ## Melhorias futuras
 - Automatizar a atualização incremental da base (novos meses do PNCP) sem recarga total.
 - Alertas de sobrepreço por item (homologado acima do estimado) direto no dashboard.
@@ -274,5 +373,5 @@ Defesa técnica em vídeo (máx. 7 min): `<inserir link do Google Drive>`.
 
 ---
 
-> **Status:** backend (Python + MySQL + SQL) completo e validado contra a prova real.
-> Em andamento: montagem do `.pbix` e gravação do vídeo.
+> **Status:** backend (Python + MySQL + SQL) completo e validado contra a prova real;
+> defesa técnica registrada por escrito. Pendentes: montagem do `.pbix` e gravação do vídeo.
