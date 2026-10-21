@@ -4,8 +4,9 @@
 # material de origem (kit baixado do Google Drive) - nao faz parte da entrega
 Gdrive/
 
-# dados: grandes e regeneraveis pelo pipeline
+# dados: grandes e regeneraveis pelo pipeline (mantemos a pasta via .gitkeep)
 data/processed/*
+!data/processed/.gitkeep
 reports/*.log
 
 # python
