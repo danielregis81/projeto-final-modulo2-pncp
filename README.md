@@ -201,4 +201,78 @@ versionada, nem aparece no README, nos scripts ou no vídeo.
 
 ---
 
-> **Status:** em construção. Este README cresce junto com o projeto (uma versão por Sprint).
+## Planejamento em Sprints
+
+O trabalho foi dividido em 8 sprints, cada uma com um objetivo claro e **algo
+conferível** ao final (um número que bate, um teste que passa). A figura abaixo resume
+o quadro; ela é gerada por script (`docs/gerar_sprints.py`) e reflete o andamento real.
+
+![Sprints do projeto](docs/img/sprints.png)
+
+| Sprint | Objetivo | Como saber que acabou |
+|--------|----------|------------------------|
+| 0 | Repositório, planejamento e entender os dados | dicionário dos CSV descrito |
+| 1 | Auditar (contar os problemas) | cada inconsistência quantificada |
+| 2 | Limpar — completar `src/limpeza.py` | `python -m src.limpeza` → 54/54 ✔ |
+| 3 | Montar fato e dimensões (regras da seção 4) | somas batem com a prova real |
+| 4 | Banco — schema SQL e carga no MySQL | contagens no banco = prova real |
+| 5 | Perguntas em SQL | 6 respostas batem com o dashboard |
+| 6 | Power BI — 15 medidas e 1 história por pergunta | páginas respondem as 6 perguntas |
+| 7 | README, figura das Sprints e vídeo | projeto reproduzível só lendo o README |
+
+## Prova real (conferência)
+
+O pipeline reproduz exatamente os números esperados pela Controladoria (anexo 8 do
+enunciado). Saída real de `python -m src.montar_tabelas`:
+
+| Conferência | Esperado | Obtido |
+|-------------|----------|--------|
+| Contratações (linhas de `compras.csv`) | 2.042 | 2.042 ✅ |
+| Itens (linhas de `itens.csv`) | 7.077 | 7.077 ✅ |
+| Resultados (linhas de `resultados.csv`) | 15.896 | 15.896 ✅ |
+| Itens rejeitados (inválidos) | 99 | 99 ✅ |
+| Itens no fato | 6.126 | 6.126 ✅ |
+| Contratações distintas no fato | 1.962 | 1.962 ✅ |
+| Fornecedores distintos | 2.652 | 2.652 ✅ |
+| Unidades compradoras (CNPJ) | 363 | 363 ✅ |
+| Soma do valor total homologado | R$ 8.044.498.805,74 | idem ✅ |
+| Itens na base comparável | 5.457 | 5.457 ✅ |
+| Economia nominal (base comparável) | R$ 992.861.686,95 | idem ✅ |
+| Economia % (base comparável) | 14,46% | 14,46% ✅ |
+| Ciclo médio / máximo (dias) | 48,1 / 611 | 48,1 / 611 ✅ |
+| Itens sem ciclo | 230 | 230 ✅ |
+| Perfil (% do volume homologado) | Obras 60,8 / Serviços 36,6 / Bens 2,6 | idem ✅ |
+
+## Dashboard (Power BI)
+
+O modelo estrela é consumido no Power BI com um Calendário em DAX e **15 medidas**
+explícitas. O dashboard tem 6 páginas — uma por pergunta de negócio — com menu de
+navegação (bookmarks) e tooltip personalizada.
+
+- Medidas DAX documentadas: [`powerbi/medidas_dax.md`](powerbi/medidas_dax.md)
+- Guia de montagem passo a passo: [`powerbi/GUIA_POWERBI.md`](powerbi/GUIA_POWERBI.md)
+- Arquivo do relatório: `powerbi/dashboard.pbix`
+
+### As 6 perguntas de negócio
+1. **Economia global** — quanto o governo economizou (R$ e %)?
+2. **Fornecedores** — quem concentra o orçamento e qual o risco?
+3. **Modalidades** — qual economiza mais e qual movimenta mais dinheiro?
+4. **Ciclo** — onde as compras demoram mais (dias entre edital e homologação)?
+5. **Regional** — onde se gasta mais e onde se consegue mais desconto?
+6. **Perfil** — como o dinheiro se divide entre bens, serviços e obras?
+
+As mesmas respostas estão em SQL em [`sql/02_perguntas.sql`](sql/02_perguntas.sql).
+
+## Vídeo (Review de Sprint)
+
+Defesa técnica em vídeo (máx. 7 min): `<inserir link do Google Drive>`.
+
+## Melhorias futuras
+- Automatizar a atualização incremental da base (novos meses do PNCP) sem recarga total.
+- Alertas de sobrepreço por item (homologado acima do estimado) direto no dashboard.
+- Testes automatizados end-to-end comparando o banco com a prova real em CI.
+
+---
+
+> **Status:** backend (Python + MySQL + SQL) completo e validado contra a prova real.
+> Em andamento: montagem do `.pbix` e gravação do vídeo.
