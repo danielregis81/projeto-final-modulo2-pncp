@@ -143,4 +143,62 @@ e tipos `DECIMAL` para dinheiro.
 
 ---
 
+## Como reproduzir o pipeline
+
+### Pré-requisitos
+- Python 3.10+ e MySQL 8.x instalados.
+- Dependências Python: `pip install -r requirements.txt`.
+
+### Passo a passo
+
+```bash
+# 1. Configurar as credenciais do banco (copie e preencha)
+cp .env.example .env          # Windows: copy .env.example .env
+#   edite o .env com host, porta, usuário e senha do seu MySQL
+
+# 2. Limpar os dados e montar fato + dimensões (gera data/processed/)
+python -m src.limpeza          # autoteste das funções de limpeza: 54/54 ✔
+python -m src.montar_tabelas   # grava os CSV tratados e confere com a prova real
+
+# 3. Criar o banco e carregar as tabelas no MySQL
+python -m src.carregar         # executa sql/01_criar_banco.sql e carrega em lote
+
+# 4. Responder as 6 perguntas de negócio (no MySQL Workbench ou via CLI)
+#    abra e rode sql/02_perguntas.sql
+```
+
+Ao rodar `src.montar_tabelas` e `src.carregar`, o próprio script imprime os números de
+conferência lado a lado com a **prova real** (anexo 8 do enunciado). Se tudo estiver
+certo, eles batem — ver a seção abaixo.
+
+### Estrutura do repositório
+
+```
+.
+├── README.md
+├── requirements.txt
+├── .env.example            # modelo de credenciais (o .env real NÃO é versionado)
+├── data/
+│   ├── raw/                # base bruta do PNCP (compras, itens, resultados)
+│   └── processed/          # tabelas tratadas (geradas pelo pipeline)
+├── src/
+│   ├── config.py           # caminhos e credenciais (lê o .env)
+│   ├── banco.py            # conexão e utilitários do MySQL
+│   ├── limpeza.py          # funções de limpeza (CNPJ, moeda, datas, nulos)
+│   ├── montar_tabelas.py   # regras de negócio → fato + dimensões
+│   └── carregar.py         # ingestão em lote no MySQL
+├── sql/
+│   ├── 01_criar_banco.sql  # schema estrela (DDL)
+│   └── 02_perguntas.sql    # as 6 perguntas de negócio
+├── powerbi/                # medidas DAX documentadas e o arquivo .pbix
+└── docs/img/               # figura das Sprints e apoios visuais
+```
+
+### Segurança
+
+A senha do MySQL fica **apenas** no `.env` (bloqueado pelo `.gitignore`). Nunca é
+versionada, nem aparece no README, nos scripts ou no vídeo.
+
+---
+
 > **Status:** em construção. Este README cresce junto com o projeto (uma versão por Sprint).
