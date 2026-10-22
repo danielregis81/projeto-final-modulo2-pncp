@@ -3,14 +3,17 @@
 Sequência mínima de cliques. Tudo já está instalado nesta máquina (Power BI Desktop,
 MySQL Connector/NET 8.4, Tabular Editor 2) e o MySQL está carregado.
 
-> Se o MySQL não estiver no ar, suba com:
-> `& "C:\mysql84\mysql-8.4.0-winx64\bin\mysqld.exe" --datadir=C:\mysql84\data --console`
+> Se o MySQL não estiver no ar, suba com (o `--mysql-native-password=ON` é
+> OBRIGATÓRIO — sem ele o Power BI dá "Internal connection fatal error. Error state 18"):
+> `& "C:\mysql84\mysql-8.4.0-winx64\bin\mysqld.exe" --datadir=C:\mysql84\data --mysql-native-password=ON --console`
 
 ## 1. Conectar (2 min)
 1. Abra o **Power BI Desktop** → *Obter dados* → **Banco de dados MySQL**.
 2. Servidor `127.0.0.1:3306` · Banco `pncp_controladoria` → OK.
-3. Credenciais, aba **Banco de dados**: usuário `root`, senha `projeto_pncp_2026` → Conectar.
+3. Credenciais, aba **Banco de dados**: usuário **`powerbi`**, senha `projeto_pncp_2026` → Conectar.
    (Aviso de conexão não criptografada → OK.)
+   - Use o usuário `powerbi` (criado com `mysql_native_password`), NÃO o `root`.
+     O `root` usa `caching_sha2_password`, que o conector .NET recusa (Error state 18).
 4. Marque **as 5 tabelas** (`fato_item_contratado`, `dim_orgao`, `dim_fornecedor`,
    `dim_modalidade`, `dim_localidade`) → **Carregar**.
    - *(Opcional, p/ prototipar gráficos rápido: marque também as views `vw_*`.)*
@@ -24,10 +27,14 @@ MySQL Connector/NET 8.4, Tabular Editor 2) e o MySQL está carregado.
 ```DAX
 Calendario =
 ADDCOLUMNS ( CALENDAR ( DATE(2025,1,1), DATE(2025,12,31) ),
-  "Ano", YEAR([Data]), "MesNum", MONTH([Data]),
-  "Mês", FORMAT([Data],"MMM","pt-BR"), "Ano-Mês", FORMAT([Data],"MMM/YY","pt-BR") )
+  "Ano", YEAR([Date]), "MesNum", MONTH([Date]),
+  "Mês", FORMAT([Date],"MMM","pt-BR"), "Ano-Mês", FORMAT([Date],"MMM/YY","pt-BR") )
 ```
-- Marque como **tabela de datas** e ordene *Mês* por *MesNum*.
+- A coluna gerada pelo CALENDAR chama-se `Date` (use `[Date]`, não `[Data]`).
+- Marque como **tabela de datas** (coluna Date) e ordene *Mês* por *MesNum*.
+- **Crie a relação** `Calendario[Date]` → `fato_item_contratado[data_publicacao]`
+  (o Power BI NÃO cria essa sozinho — sem ela, os gráficos por mês mostram o total
+  em todas as barras).
 
 ## 4. Relações (1 min)
 Na *Visão de Modelo*, arraste `sk_` de cada dimensão para o fato (4 relações 1:N) e
