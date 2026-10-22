@@ -249,9 +249,10 @@ O modelo estrela é consumido no Power BI com um Calendário em DAX e **15 medid
 explícitas. O dashboard tem 6 páginas — uma por pergunta de negócio — com menu de
 navegação (bookmarks) e tooltip personalizada.
 
+- Arquivo do relatório: [`powerbi/dashboard.pbix`](powerbi/dashboard.pbix)
+- **Visualização em PDF (abre sem o Power BI):** [`docs/dashboard.pdf`](docs/dashboard.pdf)
 - Medidas DAX documentadas: [`powerbi/medidas_dax.md`](powerbi/medidas_dax.md)
 - Guia de montagem passo a passo: [`powerbi/GUIA_POWERBI.md`](powerbi/GUIA_POWERBI.md)
-- Arquivo do relatório: `powerbi/dashboard.pbix`
 
 ### As 6 perguntas de negócio
 1. **Economia global** — quanto o governo economizou (R$ e %)?
