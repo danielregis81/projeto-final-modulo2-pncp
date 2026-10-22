@@ -119,12 +119,12 @@ M("Itens com Sobrepreço",
 
 M("Variação Mensal %",
   "VAR Atual = [Volume Homologado] " +
-  "VAR Anterior = CALCULATE ( [Volume Homologado], DATEADD ( " + CAL + "[Data], -1, MONTH ) ) " +
+  "VAR Anterior = CALCULATE ( [Volume Homologado], DATEADD ( " + CAL + "[Date], -1, MONTH ) ) " +
   "RETURN DIVIDE ( Atual - Anterior, Anterior )",
   "Extras", PCT);
 
 M("Volume Acumulado no Ano",
-  "CALCULATE ( [Volume Homologado], DATESYTD ( " + CAL + "[Data] ) )",
+  "CALCULATE ( [Volume Homologado], DATESYTD ( " + CAL + "[Date] ) )",
   "Extras", MOEDA);
 
 Info("Pronto: tabela _Medidas criada/atualizada com as medidas. Salve com Ctrl+S.");
