@@ -374,5 +374,6 @@ entrega consultas simples, consistentes e com integridade garantida pelo banco.
 
 ---
 
-> **Status:** backend (Python + MySQL + SQL) completo e validado contra a prova real;
-> defesa técnica registrada por escrito. Pendentes: montagem do `.pbix` e gravação do vídeo.
+> **Status:** projeto concluído. Backend (Python + MySQL + SQL) completo e validado
+> contra a prova real, dashboard do Power BI montado e defesa técnica registrada.
+> Todas as 8 sprints estão concluídas (Done).

@@ -30,9 +30,9 @@ SPRINTS = [
     ("5", "Perguntas em SQL",
      "As 6 respostas batem com o dashboard", "Done"),
     ("6", "Power BI — 15 medidas e 1 história por pergunta",
-     "Medidas e páginas respondem as 6 perguntas", "In Progress"),
+     "Medidas e páginas respondem as 6 perguntas", "Done"),
     ("7", "README, figura das Sprints e vídeo",
-     "Projeto reproduzível só lendo o README", "In Progress"),
+     "Projeto reproduzível só lendo o README", "Done"),
 ]
 
 CORES = {
