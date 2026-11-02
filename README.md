@@ -377,3 +377,10 @@ entrega consultas simples, consistentes e com integridade garantida pelo banco.
 > **Status:** projeto concluído. Backend (Python + MySQL + SQL) completo e validado
 > contra a prova real, dashboard do Power BI montado e defesa técnica registrada.
 > Todas as 8 sprints estão concluídas (Done).
+
+---
+
+## Agradecimentos
+
+Uma mensagem de agradecimento à professora está em
+[MENSAGEM_PROFESSORA.md](MENSAGEM_PROFESSORA.md).
